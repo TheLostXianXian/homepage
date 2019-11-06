@@ -1,0 +1,141 @@
+/*! Devices.css v0.1.16 | MIT License | github.com/picturepan2/devices.css */
+.device,
+.device::before,
+.device::after,
+.device *,
+.device *::before,
+.device *::after {
+  box-sizing: border-box;
+}
+
+.device {
+  position: relative;
+  transform: scale(1);
+  z-index: 1;
+}
+
+.device .device-frame {
+  z-index: 1;
+}
+
+.device .device-content {
+  background-color: #fff;
+  background-position: center center;
+  background-size: cover;
+  object-fit: cover;
+  position: relative;
+}
+
+.device-macbook-pro {
+  height: 444px;
+  width: 740px;
+}
+
+.device-macbook-pro .device-frame {
+  background: #0d0d0d;
+  border-radius: 20px;
+  box-shadow: inset 0 0 0 2px #c8cacb;
+  height: 428px;
+  margin: 0 auto;
+  padding: 29px 19px 39px 19px;
+  position: relative;
+  width: 614px;
+}
+
+.device-macbook-pro .device-frame::after {
+  background: #272626;
+  border-radius: 0 0 20px 20px;
+  bottom: 2px;
+  content: "";
+  height: 26px;
+  left: 2px;
+  position: absolute;
+  width: 610px;
+}
+
+.device-macbook-pro .device-frame::before {
+  bottom: 10px;
+  color: #c8cacb;
+  content: "MacBook Pro";
+  font-size: 12px;
+  height: 16px;
+  left: 50%;
+  line-height: 16px;
+  margin-left: -100px;
+  position: absolute;
+  text-align: center;
+  width: 200px;
+  z-index: 1;
+}
+
+.device-macbook-pro .device-content {
+  border: 2px solid #121212;
+  border-radius: 2px;
+  height: 360px;
+  width: 576px;
+}
+
+.device-macbook-pro .device-power {
+  background: #e2e3e4;
+  border: solid #d5d6d8;
+  border-radius: 2px 2px 0 0;
+  border-width: 2px 4px 0 4px;
+  height: 14px;
+  margin-top: -10px;
+  position: relative;
+  width: 740px;
+  z-index: 9;
+}
+
+.device-macbook-pro .device-power::after,
+.device-macbook-pro .device-power::before {
+  content: "";
+  position: absolute;
+}
+
+.device-macbook-pro .device-power::after {
+  background: #d5d6d8;
+  border-radius: 0 0 10px 10px;
+  box-shadow: inset 0 0 4px 2px #babdbf;
+  height: 10px;
+  left: 50%;
+  margin-left: -60px;
+  top: -2px;
+  width: 120px;
+}
+
+.device-macbook-pro .device-power::before {
+  background: #a0a3a7;
+  border-radius: 0 0 180px 180px/ 0 0 12px 12px;
+  box-shadow: inset 0 -2px 6px 0 #474a4d;
+  height: 12px;
+  left: -4px;
+  margin: 0 auto;
+  top: 10px;
+  width: 740px;
+}
+
+.device-macbook-pro.device-spacegray .device-frame {
+  box-shadow: inset 0 0 0 2px #767a7d;
+}
+
+.device-macbook-pro.device-spacegray .device-power {
+  background: #909496;
+  border-color: #767a7d;
+}
+
+.device-macbook-pro.device-spacegray .device-power::after {
+  background: #83878a;
+  box-shadow: inset 0 0 4px 2px #6a6d70;
+}
+
+.device-macbook-pro.device-spacegray .device-power::before {
+  background: #515456;
+  box-shadow: inset 0 -2px 6px 0 black;
+}
+
+/* 加个窗口顶部bar */
+.device-macbook-pro .device-window-bar {
+  height: 20px;
+  background: #b5b8ba;
+}
