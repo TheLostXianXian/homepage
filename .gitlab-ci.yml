@@ -1,0 +1,76 @@
+# 使用docker镜像
+image: docker:latest
+# 设置变量
+variables:
+  # 镜像仓库地址
+  REGISTRY: ccr.ccs.tencentyun.com
+  # 镜像版本
+  REGISTRY_IMAGE_TAG: ccr.ccs.tencentyun.com/xxxdxs/homepage
+  # 镜像启动后的容器名
+  CONTAINER_NAME: homepage
+
+stages:
+  - build
+  - deploy
+
+# ----------------构建-----------------
+build:
+  stage: build
+  script:
+    # 停止并删除正在使用当前镜像的容器
+    - if [ "$(docker ps -a | grep $CONTAINER_NAME)" ]; then
+    -  docker stop $CONTAINER_NAME && docker rm $CONTAINER_NAME
+    - fi
+    # 删除当前已存在的镜像
+    - if [ "$(docker images | grep $REGISTRY_IMAGE_TAG)" ]; then
+    -  docker rmi $REGISTRY_IMAGE_TAG
+    - fi
+    # 登录镜像仓库
+    - docker login -u $REGISTRY_USER --password $REGISTRY_PASSWORD $REGISTRY
+    # 构建新的镜像
+    - docker build -t $REGISTRY_IMAGE_TAG .
+    # 上传镜像
+    - docker push $REGISTRY_IMAGE_TAG
+  only:
+    - master
+  tags:
+    - ci-cd
+
+# ----------------测试-----------------
+# test:
+#   stage: test
+#   script:
+#     # 本地启动容器进行测试
+#     - docker run -d --name $CONTAINER_NAME -p 3002:3002 $REGISTRY_IMAGE_TAG
+#   when: on_success
+#   only:
+#     - master
+#   tags:
+#     - ci-cd
+
+# ----------------部署-----------------
+deploy:
+  # 切换ubuntu作为deploy任务的镜像
+  image: ubuntu:latest
+  stage: deploy
+  script:
+    # 给runner配置私钥
+    - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    # 给runner配置ssh登录不验证HostKey
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\\n\\tStrictHostKeyChecking no\\n\\n" > ~/.ssh/config'
+    # 使用ssh远程登录正式服务器，并拉取之前build上传好的镜像进行部署
+    - ssh root@$DEPLOY_HOST "
+      docker images;
+      docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY;
+      docker pull $REGISTRY_IMAGE_TAG;
+      docker run -d --name $CONTAINER_NAME -p 3002:3002 -v /root/conf:/etc/nginx/conf.d -v /root/log/access:/var/log/nginx $REGISTRY_IMAGE_TAG;"
+  when: on_success
+  allow_failure: false
+  only:
+    - master
+  tags:
+    - ci-cd
