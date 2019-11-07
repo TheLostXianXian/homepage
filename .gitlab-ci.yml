@@ -67,10 +67,21 @@ deploy:
       docker images;
       docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY;
       docker pull $REGISTRY_IMAGE_TAG;
-      docker run -d --name $CONTAINER_NAME -p 3002:3002 -v /root/conf:/etc/nginx/conf.d -v /root/log/access:/var/log/nginx $REGISTRY_IMAGE_TAG;"
+      docker run -d --name $CONTAINER_NAME -p 3003:3003 -v /root/conf:/etc/nginx/conf.d -v /root/log/access:/var/log/nginx $REGISTRY_IMAGE_TAG;"
   when: on_success
   allow_failure: false
   only:
     - master
   tags:
     - ci-cd
+
+sudo docker exec -it gitlab-runner gitlab-ci-multi-runner register -n \
+  --url https://gitlab.com/ \
+  --registration-token BCtkMViZyzYsev214W-S \
+  --executor docker \
+  --description "gitlab-runner in docker" \
+  --tag-list "ci-cd" \
+  --docker-privileged=false \
+  --docker-pull-policy="if-not-present" \
+  --docker-image "docker:latest" \
+  --docker-volumes /var/run/docker.sock:/var/run/docker.sock
