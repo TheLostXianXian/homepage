@@ -3,7 +3,7 @@
  * 返回目录的json文件
  * 实际每个目录中都会有一个.和..的目录名
  * 实际指向当前和父级目录
- * /根目录也存在这两个目录名，但都表示自己
+ * 根目录也存在这两个目录名，但都表示自己
  */
 const FILE_LIST = {
   name: "/",
@@ -62,7 +62,7 @@ const FILE_LIST = {
             {
               name: "projects.txt",
               type: "file",
-              content: "https://github.com/xxxxxx"
+              content: "占位https://github.com/TheLostXianXian"
             }
           ]
         }
@@ -70,11 +70,14 @@ const FILE_LIST = {
     },
     {
       // 后端写一个发送简历的接口
-      name: "resume.txt",
+      name: "README.md",
       type: "file",
       mark: [0, 1],
       sudo: true,
-      content: "https://github.com/xxxx11xx"
+      content:
+        "Repo: https://gitlab.com/TheLostXianXian/homepage<br> \
+      ## 前言 \
+      一直想建个个性一点的小网站. 话不多说, 放码过来."
     }
   ]
 }

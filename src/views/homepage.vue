@@ -74,23 +74,8 @@ export default {
       interactiveInput: "",
       tabMode: false,
       focus: true,
-      resultHistory: [
-        {
-          command:
-            "cd test cd test cd test cd test cd test cd test cd test cd test cd test cd test",
-          path: "~",
-          result: ""
-        },
-        {
-          command: "cat readme.md",
-          path: "/",
-          result: "hello\nworld\nyes amd."
-        }
-      ],
-      commandHistory: [
-        "cd test cd test cd test cd test cd test cd test cd test cd test cd test cd test",
-        "cat readme.md"
-      ]
+      resultHistory: [],
+      commandHistory: []
     }
   },
   created() {
@@ -222,37 +207,37 @@ export default {
         // 能输入的才加入
       }
     },
-    runCommand() {
-      // 暂时没用到
-      const { container } = this.$refs
-      const inputTokenList = this.currentInput.trim().split(" ")
-      if (!inputTokenList.length) {
-        // 空输入，包括多空格输入统统不算，返回下一行，不添加进commandHistory
-      }
-      if (inputTokenList[0] === "cd") {
-        // 有趣：实际的命令行-开头的文件夹，cd不进去，会跳选项错误，但自动补全能工作
-        // 再创建一个函数。分析是否是sudo。而不是单纯判断第一个参数是cd
-        if (inputTokenList.length === 1) {
-          const obj = {
-            command: this.currentInput,
-            path: this.pathName,
-            result: ""
-          }
-          this.currentPathMark = [0, 0]
-          this.resultHistory.push(obj)
-          this.commandHistory.push(this.currentInput)
-          this.currentInput = ""
-          return
-        } else {
-          // cd 的参数，绝对路径，相对路径, 别名~，.和 .. 以及.，..和前面的各种组合（所以自动补全必须实时计算）
-          // 相对路径(非/开头都为相对路径，需要参考当前路径，并且自动补全)，
-          const param = inputTokenList[1]
-        }
-      }
-      this.$nextTick(() => {
-        container.scrollTop = container.scrollHeight
-      })
-    },
+    // runCommand() {
+    //   // 暂时没用到
+    //   const { container } = this.$refs
+    //   const inputTokenList = this.currentInput.trim().split(" ")
+    //   if (!inputTokenList.length) {
+    //     // 空输入，包括多空格输入统统不算，返回下一行，不添加进commandHistory
+    //   }
+    //   if (inputTokenList[0] === "cd") {
+    //     // 有趣：实际的命令行-开头的文件夹，cd不进去，会跳选项错误，但自动补全能工作
+    //     // 再创建一个函数。分析是否是sudo。而不是单纯判断第一个参数是cd
+    //     if (inputTokenList.length === 1) {
+    //       const obj = {
+    //         command: this.currentInput,
+    //         path: this.pathName,
+    //         result: ""
+    //       }
+    //       this.currentPathMark = [0, 0]
+    //       this.resultHistory.push(obj)
+    //       this.commandHistory.push(this.currentInput)
+    //       this.currentInput = ""
+    //       return
+    //     } else {
+    //       // cd 的参数，绝对路径，相对路径, 别名~，.和 .. 以及.，..和前面的各种组合（所以自动补全必须实时计算）
+    //       // 相对路径(非/开头都为相对路径，需要参考当前路径，并且自动补全)，
+    //       const param = inputTokenList[1]
+    //     }
+    //   }
+    //   this.$nextTick(() => {
+    //     container.scrollTop = container.scrollHeight
+    //   })
+    // },
     parseInput(currentInput) {
       // 解析输入的语句拆分成各个表达式
       // 需要考虑运算符优先级，转换成逆波兰表达式并推入栈中
@@ -343,7 +328,7 @@ export default {
         path: this.pathName,
         result: ""
       }
-      console.log(cmdObj)
+      // console.log(cmdObj)
       if (cmdObj.name === "cd") {
         if (!cmdObj.param) {
           this.currentPathMark = [0, 0]
@@ -386,7 +371,7 @@ export default {
       } else if (cmdObj.name === "ls") {
         // 带路径参数和不带路径参数
         // ls显示特点: 会按表格适应排列, 文件名太长, 则每行显示一个.(暂时先不做,逻辑先跑通)
-        console.log(cmdObj)
+        // console.log(cmdObj)
         if (!cmdObj.param) {
           const { currentPathObj } = this
           currentPathObj.children.forEach(el => {
@@ -527,13 +512,13 @@ export default {
       }
       return ret
     },
-    getAutoCompleteStr(input, currentPathObj, pathConfigObj) {
+    getAutoCompleteStr(input) {
       // 统一全部联想,优先指令.
       // 实际应该返回一个数组, 然后输出第一个元素
       const list = this.getAutoCompleteList(input)
       return list.length ? list[0] : ""
     },
-    getAutoCompleteList(input, currentPathObj, pathConfigObj) {
+    getAutoCompleteList(input) {
       // 统一全部联想,优先指令.
       // 实际应该返回一个数组, 然后输出第一个元素
       const cmdList = [
@@ -636,27 +621,29 @@ export default {
       this.focus = false
     },
     focusInput() {
-      this.putCursorLast()
+      if (!this.focus) {
+        this.putCursorLast()
+      }
     },
     scrollToBottom() {
       const { container } = this.$refs
       this.$nextTick(() => {
         container.scrollTop = container.scrollHeight
       })
-    },
-    sendMessage() {
-      fetch("", {
-        method: "POST",
-        mode: "cors",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify("")
-      }).then(res => {
-        console.log("send success")
-      })
     }
+    // sendMessage() {
+    //   fetch("", {
+    //     method: "POST",
+    //     mode: "cors",
+    //     credentials: "include",
+    //     headers: {
+    //       "Content-Type": "application/json"
+    //     },
+    //     body: JSON.stringify("")
+    //   }).then(res => {
+    //     console.log("send success")
+    //   })
+    // }
   },
   components: {
     VHeader,
