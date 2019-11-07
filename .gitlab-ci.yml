@@ -67,7 +67,7 @@ deploy:
       docker images;
       docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY;
       docker pull $REGISTRY_IMAGE_TAG;
-      docker run -d --name $CONTAINER_NAME -p 3003:3003 -v /root/conf/homepage:/etc/nginx/conf.d -v /root/log/access:/var/log/nginx $REGISTRY_IMAGE_TAG;"
+      docker run -d --name $CONTAINER_NAME -p 80:3003 -v /root/conf/homepage:/etc/nginx/conf.d -v /root/log/access:/var/log/nginx $REGISTRY_IMAGE_TAG;"
   when: on_success
   allow_failure: false
   only:
