@@ -1,19 +1,22 @@
 <template>
   <div id="app">
-    <Macbook>
-      <Homepage />
-    </Macbook>
+    <macbook>
+      <homepage />
+    </macbook>
+    <v-footer></v-footer>
   </div>
 </template>
 
 <script>
 import Homepage from "./views/homepage"
 import Macbook from "./views/macbook"
+import VFooter from "@/components/footer"
 export default {
   name: "app",
   components: {
     Homepage,
-    Macbook
+    Macbook,
+    VFooter
   }
 }
 </script>
