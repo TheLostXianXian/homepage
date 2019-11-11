@@ -1,8 +1,8 @@
 <template>
-  <div class="homepage" ref="container" @click="focusInput">
+  <div class="homepage" ref="container">
     <v-header></v-header>
     <history :history="resultHistory"></history>
-    <command-line v-for="(item, index) in commandStack" :key="index">
+    <command-line>
       <template
         v-if="mode === 'normal' || mode !== 'interactive'"
         v-slot:prefix
@@ -22,28 +22,28 @@
           v-text="currentInput"
           ref="input"
           @input="handleInput"
-          @focus="onInputFocus"
-          @blur="onInputBlur"
           @keydown.enter.prevent="executeCommand"
           @keydown.tab.prevent="executeCommand"
           @keydown.up.prevent="executeCommand"
           @keydown.down.prevent="executeCommand"
         ></span>
         <!-- <span
+                  @focus="onInputFocus"
+          @blur="onInputBlur"
           class="auto-complete"
           v-if="autoCompleteText"
           v-text="autoCompleteText"
         >
         </span> -->
       </template>
-      <template v-slot:result>
+      <!-- <template v-slot:result>
         <p>
           <span v-for="(result, index2) in item.result" :key="index2">{{
             result
           }}</span>
           <span v-if="mode === 'interactive'">{{ interactiveInput }}</span>
         </p>
-      </template>
+      </template> -->
     </command-line>
   </div>
 </template>
@@ -61,13 +61,9 @@ export default {
     return {
       currentInput: "",
       currentPathMark: [0, 0],
-      pathStack: [],
-      commandStack: [
-        {
-          command: ""
-        }
-      ],
-      userName: "Baiwei",
+      // 有&&,||存在时多命令模式, 此时输出结果不立即重置input(?有必要?)
+      resetInput: false,
+      userName: "baiwei",
       machineName: "xlxlx.xyz",
       lock: false,
       mode: "normal",
@@ -75,14 +71,26 @@ export default {
       tabMode: false,
       focus: true,
       resultHistory: [],
-      commandHistory: []
+      commandHistory: [],
+      resultListStr: ""
     }
   },
   created() {
     const file_list_bak = JSON.parse(JSON.stringify(FILE_LIST))
     this.pathConfigObj = this.handlePath(file_list_bak, file_list_bak)
   },
-  mounted() {},
+  mounted() {
+    this.$nextTick(() => {
+      window.onblur = () => {
+        console.log("blur")
+      }
+
+      window.onfocus = () => {
+        console.log("focus")
+        this.focusInput()
+      }
+    })
+  },
   computed: {
     currentPathObj() {
       const mark = this.currentPathMark.slice()
@@ -152,8 +160,76 @@ export default {
       // 同时滚动条滚动最底部
       if (event.key === "Enter") {
         // 逻辑操作符还未实现
-        const currentInput = this.currentInput.trim()
-        this.doCommand(this.parseExpression(currentInput))
+        const commandStack = this.runCommand()
+        const currentPathName = this.pathName
+        const computeStack = []
+        let result = []
+        if (!commandStack.length) {
+          return
+        }
+        if (commandStack.length === 1) {
+          this.resetInput = true
+          commandStack[0]()
+        }
+        for (let i = 0; i < commandStack.length; i++) {
+          if (
+            typeof commandStack[i] === "function" ||
+            typeof commandStack[i] === "boolean"
+          ) {
+            computeStack.push(commandStack[i])
+          } else {
+            let c1 = computeStack.pop()
+            if (typeof c1 === "boolean") {
+              const ret = c1
+              if (i === commandStack.length - 1) {
+                c1 = () => {
+                  this.resetInput = true
+                  return ret
+                }
+              } else {
+                c1 = () => ret
+              }
+            } else {
+              const fn = c1
+              c1 = () => {
+                this.resetInput = true
+                return fn()
+              }
+            }
+            let c2 = computeStack.pop()
+            // if (typeof c2 === "boolean") {
+            //   const ret = c2
+            //   c2 = () => ret
+            // }
+            if (typeof c2 === "boolean") {
+              const ret = c2
+              if (i === commandStack.length - 1) {
+                c2 = () => {
+                  this.resetInput = true
+                  return ret
+                }
+              } else {
+                c2 = () => ret
+              }
+            } else {
+              const fn = c2
+              c2 = () => {
+                this.resetInput = true
+                return fn()
+              }
+            }
+            if (commandStack[i] === "&&") {
+              result = c2() && c1()
+            } else if (commandStack[i] === "||") {
+              result = c2() || c1()
+            }
+            // 如果有false 说明报错了
+            computeStack.push(result)
+          }
+        }
+        // 所有任务执行完成后才渲染结果 不可行
+        // 如果遇到交互模式怎么办?
+        this.renderResult(currentPathName)
       }
       if (event.key === "ArrowUp") {
         this.historyCursorIndex && this.historyCursorIndex--
@@ -174,9 +250,7 @@ export default {
     },
     handleInput() {
       // 光标问题，要考虑的点很多， 暂时放在这儿，getSelection
-      const {
-        input: [input]
-      } = this.$refs
+      const { input } = this.$refs
       const selection = window.getSelection()
       this.currentInput = input.innerText
       this.$nextTick(() => {
@@ -187,9 +261,7 @@ export default {
     putCursorLast() {
       // 让光标移到最后
       // 每当上下移动或者自动补全时,光标会移到开头,hack一下试试
-      const {
-        input: [input]
-      } = this.$refs
+      const { input } = this.$refs
       // const range = document.createRange()
       const selection = window.getSelection()
       this.$nextTick(() => {
@@ -207,37 +279,20 @@ export default {
         // 能输入的才加入
       }
     },
-    // runCommand() {
-    //   // 暂时没用到
-    //   const { container } = this.$refs
-    //   const inputTokenList = this.currentInput.trim().split(" ")
-    //   if (!inputTokenList.length) {
-    //     // 空输入，包括多空格输入统统不算，返回下一行，不添加进commandHistory
-    //   }
-    //   if (inputTokenList[0] === "cd") {
-    //     // 有趣：实际的命令行-开头的文件夹，cd不进去，会跳选项错误，但自动补全能工作
-    //     // 再创建一个函数。分析是否是sudo。而不是单纯判断第一个参数是cd
-    //     if (inputTokenList.length === 1) {
-    //       const obj = {
-    //         command: this.currentInput,
-    //         path: this.pathName,
-    //         result: ""
-    //       }
-    //       this.currentPathMark = [0, 0]
-    //       this.resultHistory.push(obj)
-    //       this.commandHistory.push(this.currentInput)
-    //       this.currentInput = ""
-    //       return
-    //     } else {
-    //       // cd 的参数，绝对路径，相对路径, 别名~，.和 .. 以及.，..和前面的各种组合（所以自动补全必须实时计算）
-    //       // 相对路径(非/开头都为相对路径，需要参考当前路径，并且自动补全)，
-    //       const param = inputTokenList[1]
-    //     }
-    //   }
-    //   this.$nextTick(() => {
-    //     container.scrollTop = container.scrollHeight
-    //   })
-    // },
+    runCommand() {
+      // 用来执行整条输入, doCommand执行单个表达式
+      const commandStack = this.parseInput(this.currentInput)
+      for (let i = 0; i < commandStack.length; i++) {
+        if (typeof commandStack[i] === "object") {
+          const obj = commandStack[i]
+          commandStack[i] = () => {
+            return this.doCommand(obj)
+          }
+        }
+      }
+      // 在尾部添加一个渲染函数, 执行渲染操作
+      return commandStack
+    },
     parseInput(currentInput) {
       // 解析输入的语句拆分成各个表达式
       // 需要考虑运算符优先级，转换成逆波兰表达式并推入栈中
@@ -309,25 +364,45 @@ export default {
       }
       return ret
     },
-    renderResult() {
-      const { container } = this.$refs
-      // this.resultHistory.push()
-      // this.commandHistory.push(this.currentInput)
-      // this.currentInput = ""
-      // this.currentPathMark = [0, 0]
-      this.$nextTick(() => {
-        container.scrollTop = container.scrollHeight
-      })
+    renderResult(currentPathName) {
+      // 最后一次渲染, 交互模式和出错暂时先放一边.
+      if (this.isClear) {
+        this.resultHistory = []
+        this.isClear = false
+      } else {
+        this.resultHistory.push({
+          pathName: currentPathName,
+          command: this.currentInput,
+          result: this.resultListStr
+        })
+      }
+      this.commandHistory.push(this.currentInput)
+
+      if (this.resetInput) {
+        this.currentInput = ""
+      }
+      this.resultListStr = ""
+      this.resetInput = false
+
+      this.scrollToBottom()
+      // this.$nextTick(() => {
+      //   container.scrollTop = container.scrollHeight
+      //   this.resetInput = false
+      // })
+
+      // return false || true 配合执行运算符优先级
     },
     doCommand(cmdObj) {
       // 输入cmdObj, 返回要渲染的结果或者报错
       // cmdObj = { name: "", option: "", param: "", sudo: false } 是parseExpression的返回值
       // 要返回bool值 为了和之后的逻辑运算符配合
-      const obj = {
-        command: this.currentInput,
-        path: this.pathName,
-        result: ""
-      }
+      // 现在的问题是doCommand是运行单个指令, 但是obj(history)是全部指令.
+      // obj非必要, command, path直接获取, result拼接.
+      // const obj = {
+      //   command: this.currentInput,
+      //   path: this.pathName,
+      //   result: ""
+      // }
       // console.log(cmdObj)
       if (cmdObj.name === "cd") {
         if (!cmdObj.param) {
@@ -343,16 +418,16 @@ export default {
             this.currentPathMark = res.pathObj.mark
           } else if (res.error) {
             // 不存在
-            obj.result = `-bash ${cmdObj.name}: ${res.info}`
+            this.resultListStr += `-bash ${cmdObj.name}: ${res.info}<br>`
           } else {
-            obj.result = `-bash ${cmdObj.name}: ${cmdObj.param}: Not a directory`
+            this.resultListStr += `-bash ${cmdObj.name}: ${cmdObj.param}: Not a directory<br>`
           }
         }
       } else if (cmdObj.name === "cat") {
         if (!cmdObj.param) {
           // 实测cat没参数是不报错,但会进入多行模式(反正没法正常工作)
           // 但这里让它报错usage: cat [-benstuv] [file ...]
-          obj.result = `usage: ${cmdObj.name} [file ...]`
+          this.resultListStr += `usage: ${cmdObj.name} [file ...]<br>`
         } else {
           const res = this.parsePath(
             cmdObj.param,
@@ -361,11 +436,11 @@ export default {
           )
 
           if (!res.error && res.pathObj.type === "file") {
-            obj.result = res.pathObj.content
+            this.resultListStr = res.pathObj.content
           } else if (res.error) {
-            obj.result = `-bash ${cmdObj.name}: ${res.info}`
+            this.resultListStr += `-bash ${cmdObj.name}: ${res.info}<br>`
           } else {
-            obj.result = `-bash ${cmdObj.name}: ${cmdObj.param}: Is a directory`
+            this.resultListStr += `-bash ${cmdObj.name}: ${cmdObj.param}: Is a directory<br>`
           }
         }
       } else if (cmdObj.name === "ls") {
@@ -375,8 +450,9 @@ export default {
         if (!cmdObj.param) {
           const { currentPathObj } = this
           currentPathObj.children.forEach(el => {
-            obj.result += `${el.name}  `
+            this.resultListStr += `${el.name}  `
           })
+          this.resultListStr += "<br>"
         } else {
           const res = this.parsePath(
             cmdObj.param,
@@ -386,40 +462,41 @@ export default {
 
           if (!res.error && res.pathObj.type === "dir") {
             res.pathObj.children.forEach(el => {
-              obj.result += `${el.name}  `
+              this.resultListStr += `${el.name}  `
             })
+            this.resultListStr += "<br>"
           } else if (res.error) {
-            obj.result = `-bash ${cmdObj.name}: ${res.info}`
+            this.resultListStr += `-bash ${cmdObj.name}: ${res.info}<br>`
           } else {
             // ls 如果是个文件, 那么输出文件名
-            obj.result = `${res.pathObj.name}`
+            this.resultListStr += `${res.pathObj.name}`
           }
         }
       } else if (cmdObj.name === "pwd") {
-        obj.result = this.pathFullName
+        this.resultListStr += this.pathFullName
       } else if (cmdObj.name === "help") {
-        obj.result = "This is help infomation."
+        this.resultListStr +=
+          "暂时只支持cd cat clear ls pwd uname && || 和Tab 命令目录自动补全<br>"
       } else if (cmdObj.name === "clear") {
-        this.resultHistory = []
-        this.currentInput = ""
+        // 此处需要标记是clear
+        this.isClear = true
       } else if (cmdObj.name === "uname") {
-        obj.result = "Darwin"
+        this.resultListStr += "Darwin<br>"
       } else if (cmdObj.name === "screenfetch") {
-        obj.result = "🍎"
+        this.resultListStr += "🍎<br>"
       } else if (cmdObj.name === "macbook") {
         // 交互模式 等待下一步输入
-        if (this.param) this.mode = "interactive"
-        obj.result = ""
+        // if (this.param) this.mode = "interactive"
+        // obj.result = ""
       } else {
-        obj.result = `-bash: ${cmdObj.name}: command not found`
+        this.resultListStr += `-bash: ${cmdObj.name}: command not found<br>`
       }
 
-      if (cmdObj.name !== "clear") {
-        this.resultHistory.push(obj)
-      }
-      this.commandHistory.push(this.currentInput)
-      this.currentInput = ""
-      this.renderResult()
+      // if (cmdObj.name !== "clear") {
+      //   this.resultHistory.push(obj)
+      // }
+      // this.renderResult()
+      return true
     },
     parsePath(path, currentPathObj, pathConfigObj) {
       // 返回, 正确error: 0 {error: 0, pathObj: {目录也是一种文件}, info: ""}
@@ -621,9 +698,10 @@ export default {
       this.focus = false
     },
     focusInput() {
-      if (!this.focus) {
-        this.putCursorLast()
-      }
+      // if (!this.focus) {
+      //   this.putCursorLast()
+      // }
+      this.putCursorLast()
     },
     scrollToBottom() {
       const { container } = this.$refs
@@ -631,19 +709,6 @@ export default {
         container.scrollTop = container.scrollHeight
       })
     }
-    // sendMessage() {
-    //   fetch("", {
-    //     method: "POST",
-    //     mode: "cors",
-    //     credentials: "include",
-    //     headers: {
-    //       "Content-Type": "application/json"
-    //     },
-    //     body: JSON.stringify("")
-    //   }).then(res => {
-    //     console.log("send success")
-    //   })
-    // }
   },
   components: {
     VHeader,

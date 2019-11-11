@@ -25,7 +25,7 @@ const FILE_LIST = {
               name: "goToBlog.sh",
               type: "file",
               mark: [0, 0, 0, 0],
-              content: "hello world /n goToBlog.sh nihao."
+              content: "占位占位 未完成."
             }
           ]
         },
@@ -50,7 +50,7 @@ const FILE_LIST = {
               // 感觉这功能没必要0.0,留了邮箱还留啥言.还要写接口,保存了也不会看.
               type: "file",
               mark: [0, 0, 1, 1],
-              content: "hello world /n leaveMessage.sh nihao."
+              content: "占位占位 未完成."
             }
           ]
         },
@@ -62,7 +62,7 @@ const FILE_LIST = {
             {
               name: "projects.txt",
               type: "file",
-              content: "占位https://github.com/TheLostXianXian"
+              content: "https://github.com/TheLostXianXian"
             }
           ]
         }

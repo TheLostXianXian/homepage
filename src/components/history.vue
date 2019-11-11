@@ -3,7 +3,7 @@
     <command-line v-for="(item, index) in history" :key="index">
       <template v-slot:prefix>
         <span class="prefix">{{
-          `[${userName}@${machineName} ${item.path}]# `
+          `[${userName}@${machineName} ${item.pathName}]# `
         }}</span>
       </template>
       <template v-slot:command>
@@ -22,7 +22,7 @@ import CommandLine from "./command-line"
 export default {
   data() {
     return {
-      userName: "Baiwei",
+      userName: "baiwei",
       machineName: "xlxlx.xyz"
     }
   },
@@ -32,6 +32,10 @@ export default {
       default: function() {
         return []
       }
+    },
+    prefix: {
+      type: Boolean,
+      default: true
     }
   },
   components: {

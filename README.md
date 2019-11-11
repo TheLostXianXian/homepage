@@ -1,5 +1,5 @@
 ## 前言
-一直想建个个性一点的小网站. 话不多说, 放码过来.
+一直想建个个性一点的个人主页, 直到看到了[axton.cc](https://axton.cc). 主页地址[https://xlxlx.xyz](https://xlxlx.xyz)话不多说, 放码过来.
 
 ## 笔记
 pass
